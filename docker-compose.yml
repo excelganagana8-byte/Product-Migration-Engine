@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-pme}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pme_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pme} -d ${POSTGRES_DB:-pme}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  migrate:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pme}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-pme}?schema=public
+    command: sh -c "npx prisma generate && npx prisma db push"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pme}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-pme}?schema=public
+      PORT: 4000
+    command: npm run start
+    ports:
+      - "127.0.0.1:4000:4000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  worker:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pme}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-pme}?schema=public
+    command: npm run worker
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - backend
+volumes:
+  pme_pgdata:

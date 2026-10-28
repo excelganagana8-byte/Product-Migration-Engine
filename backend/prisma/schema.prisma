@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  SHOPIFY
+  WOOCOMMERCE
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  PAUSED
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+  CANCELLED
+}
+
+enum ItemStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+enum EntityType {
+  PRODUCT
+  VARIATION
+  IMAGE
+}
+
+model StoreConnection {
+  id                    String          @id @default(cuid())
+  name                  String
+  platform              Platform
+  storeUrl              String
+  encryptedCredentials  String
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  sourceJobs            MigrationJob[]  @relation("SourceConnection")
+  destinationJobs       MigrationJob[]  @relation("DestinationConnection")
+}
+
+model MigrationJob {
+  id                    String          @id @default(cuid())
+  status                JobStatus       @default(QUEUED)
+  sourceConnectionId    String
+  destinationConnectionId String
+  sourceConnection      StoreConnection @relation("SourceConnection", fields: [sourceConnectionId], references: [id])
+  destinationConnection StoreConnection @relation("DestinationConnection", fields: [destinationConnectionId], references: [id])
+  total                 Int             @default(0)
+  succeeded             Int             @default(0)
+  failed                Int             @default(0)
+  skipped               Int             @default(0)
+  currentActivity       String?
+  cancelRequested       Boolean         @default(false)
+  leaseUntil            DateTime?
+  workerId              String?
+  startedAt             DateTime?
+  finishedAt            DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  items                 JobItem[]
+  logs                  JobLogEvent[]
+  mappings              RecordMapping[]
+  @@index([status, createdAt])
+}
+
+model JobItem {
+  id              String      @id @default(cuid())
+  jobId           String
+  job             MigrationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  entityType       EntityType  @default(PRODUCT)
+  sourceId         String
+  sourceTitle      String?
+  status           ItemStatus  @default(PENDING)
+  destinationId    String?
+  errorCode        String?
+  errorMessage     String?
+  attempts         Int         @default(0)
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  @@unique([jobId, entityType, sourceId])
+  @@index([jobId, status])
+}
+
+model RecordMapping {
+  id              String      @id @default(cuid())
+  jobId           String
+  job             MigrationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  entityType      EntityType
+  sourceId        String
+  destinationId   String
+  createdAt       DateTime    @default(now())
+  @@unique([jobId, entityType, sourceId])
+  @@index([entityType, sourceId])
+}
+
+model JobLogEvent {
+  id          String      @id @default(cuid())
+  jobId       String
+  job         MigrationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  level       String      @default("info")
+  event       String
+  message     String
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  @@index([jobId, createdAt])
+}

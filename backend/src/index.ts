@@ -1,0 +1,10 @@
+import { timingSafeEqual } from 'node:crypto'; import express from 'express'; import cors from 'cors'; import helmet from 'helmet'; import rateLimit from 'express-rate-limit'; import { PrismaClient } from '@prisma/client'; import { env } from './config/env.js'; import { api } from './routes/api.js';
+const app=express(); const prisma=new PrismaClient();
+app.disable('x-powered-by'); app.use(helmet()); app.use(cors({origin:env.FRONTEND_ORIGIN.split(',').map(s=>s.trim()),methods:['GET','POST','DELETE'],allowedHeaders:['Content-Type','x-pme-admin-token']})); app.use(express.json({limit:'1mb'})); app.use(rateLimit({windowMs:60_000,limit:120,standardHeaders:true,legacyHeaders:false}));
+app.get('/api/health',(_req,res)=>res.json({ok:true,service:'pme-api',timestamp:new Date().toISOString()}));
+app.get('/api/ready',async(_req,res)=>{try{await prisma.$queryRaw`SELECT 1`;res.json({ok:true,database:'connected'})}catch{res.status(503).json({ok:false,database:'unavailable'})}});
+app.use('/api',(req,res,next)=>{if(!env.PME_ADMIN_TOKEN){if(env.NODE_ENV==='production'){res.status(503).json({error:'PME_ADMIN_TOKEN must be configured in production.'});return}next();return}const supplied=req.header('x-pme-admin-token')||'';if(supplied.length!==env.PME_ADMIN_TOKEN.length||!cryptoSafeEqual(supplied,env.PME_ADMIN_TOKEN)){res.status(401).json({error:'Valid admin token required.'});return}next()});
+function cryptoSafeEqual(a:string,b:string){const aa=Buffer.from(a),bb=Buffer.from(b);return aa.length===bb.length&&timingSafeEqual(aa,bb)}
+app.use('/api',api);
+app.use((err:unknown,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{const error=err as Error & {status?:number;issues?:unknown};const status=error.name==='ZodError'?400:error.status||400;const message=error.name==='ZodError'?'Invalid request.':error.message||'Unexpected server error.';console.error(`[api] ${error.name||'Error'}: ${message.replace(/token[^, ]*/gi,'token [REDACTED]')}`);res.status(status).json({error:message, ...(error.name==='ZodError'?{details:error.issues}:{})})});
+app.listen(env.PORT,'0.0.0.0',()=>console.log(`PME API listening on ${env.PORT}`));

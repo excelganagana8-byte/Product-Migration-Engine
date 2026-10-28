@@ -1,0 +1,14 @@
+{
+  "name": "product-migration-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source Shopify to WooCommerce product migration utility",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "test": "npm test --workspace=backend",
+    "typecheck": "npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend"
+  },
+  "workspaces": ["backend", "frontend"],
+  "devDependencies": {"concurrently": "^9.1.2"}
+}

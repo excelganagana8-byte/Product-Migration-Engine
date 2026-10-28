@@ -1,0 +1,3 @@
+# License choice
+
+PME uses the MIT License in this initial repository. MIT is short and permissive, supports commercial use and modification, and is familiar to contributors. It does not require downstream distributors to publish their modified source code. Apache-2.0 is another permissive option with more explicit patent terms. AGPL can require source availability for modified versions offered over a network, but imposes stronger obligations and may reduce adoption in some commercial settings. This is a project governance decision, not legal advice; contributors should review the implications before the first public release.

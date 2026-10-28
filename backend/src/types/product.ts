@@ -1,0 +1,3 @@
+export type NormalizedImage = { src: string; alt?: string; position?: number };
+export type NormalizedVariant = { sourceId: string; title: string; sku: string | null; price: string; compareAtPrice: string | null; inventoryQuantity: number | null; options: Record<string,string>; barcode?: string | null };
+export type NormalizedProduct = { sourceId: string; title: string; descriptionHtml: string; handle: string; status: 'publish'|'draft'|'private'; vendor?: string; tags: string[]; options: {name:string;values:string[]}[]; variants: NormalizedVariant[]; images: NormalizedImage[]; warnings: string[] };
