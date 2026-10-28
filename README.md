@@ -1,6 +1,6 @@
 # Product Migration Engine (PME)
 
-Open-source, self-hosted tooling for migrating supported product data from **Shopify to WooCommerce**. PME is a migration utility, not a store builder or hosted multi-user SaaS.
+Open-source, self-hosted tooling for migrating supported product data from **Shopify to WooCommerce and later other e-commerce platforms**. PME is a migration utility, not a store builder or hosted multi-user SaaS.
 
 > **Status: early implementation.** The repository includes a runnable UI/API foundation, encrypted connection storage, platform access checks, Shopify product retrieval, product mapping, a database-backed job model, and a worker foundation. It has **not** been verified end-to-end against live stores. Do not use it on a production store until you have tested with disposable development stores and reviewed the limitations below.
 
